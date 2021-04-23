@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PHP Based Chat</title>
+    <script src="https://unpkg.com/mithril/mithril.js"></script>
+</head>
+<body>
+
+    <script>
+        (() => {
+            "use strict";
+
+            let messages = [];
+            let newMessage = '';
+            let websocket = new WebSocket("ws://localhost:1337/broadcast");
+
+            websocket.onmessage = (message) => {
+                messages.push(message.data);
+                m.redraw.sync();
+            };
+
+            document.onkeyup = function(e) {
+                if (e.ctrlKey && e.code === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            function sendMessage() {
+                websocket.send(newMessage);
+                newMessage = '';
+            }
+
+            let Chat = {
+                view: () => {
+                    return m(
+                        'div',
+                        m('textarea', {id: 'chat-field', value: newMessage, placeholder: 'Type your message here', onkeyup: (e) => newMessage = e.currentTarget.value}),
+                        m('button', {onclick: sendMessage}, 'Drop Message ▼ (ctrl+enter)'),
+                        m(
+                            'div',
+                            messages.slice().reverse().map((message) => m('div', message))
+                        )
+                    )
+                }
+            };
+
+            let root = document.body;
+            m.mount(root, Chat);
+        })();
+    </script>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            color: #c7c7c7;
+        }
+
+        body {
+            background-color: #232323;
+        }
+
+        textarea {
+            width: 98%;
+            padding: 1%;
+            height: 2rem;
+            background-color: #232323;
+            color: white;
+            border:none;
+            resize: none;
+        }
+
+        button {
+            width: 100%;
+            text-align: left;
+            background-color: #473d3d;
+            border: none;
+            cursor: pointer;
+            height: 1.5rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</body>
+</html>

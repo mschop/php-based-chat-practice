@@ -1,0 +1,37 @@
+#!/usr/bin/env php
+<?php
+
+namespace App;
+
+use Amp\Log\ConsoleFormatter;
+use Amp\Log\StreamHandler;
+use Amp\Loop;
+use Amp\Websocket\Server\Websocket;
+use Monolog\Logger;
+use Psr\Log\LoggerInterface;
+use function Amp\ByteStream\getStdout;
+
+require __DIR__ . '/vendor/autoload.php';
+
+$c = new \Phespro\Container\Container();
+
+$c->add(WebsocketClientHandler::class, fn() => new WebsocketClientHandler(
+        $c->get(LoggerInterface::class),
+));
+$c->add(Websocket::class, fn() => new Websocket(
+    $c->get(WebsocketClientHandler::class),
+));
+$c->add(LoopHandler::class, fn() => new LoopHandler(
+    $c->get(Websocket::class),
+    $c->get(LoggerInterface::class),
+));
+
+$c->add(LoggerInterface::class, function() {
+    $logHandler = new StreamHandler(getStdout());
+    $logHandler->setFormatter(new ConsoleFormatter);
+    $logger = new Logger('server');
+    $logger->pushHandler($logHandler);
+    return $logger;
+});
+
+Loop::run($c->get(LoopHandler::class));
